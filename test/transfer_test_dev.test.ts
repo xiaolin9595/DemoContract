@@ -96,7 +96,7 @@ describe('#generate account address and initcode', () => {
 
       //let rec=await address1.sendTransaction(trans)
       let FidoPubKey1='0x4554480000000000000000000000000000000000000000000000000000000000'
-  
+     // let data=await Account.interface.encodeFunctionData('L1transfer', [1,address1.address,address2.address, parseEther('0.01'), '0x1234567890'])
      //生成userop的calldata
       const callData1 = Account.interface.encodeFunctionData('L1transfer', [1,address1.address,address2.address, parseEther('0.01'), '0x1234567890']) 
       

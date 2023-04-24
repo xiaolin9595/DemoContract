@@ -8,7 +8,7 @@ contract TxState is Ownable {
     IEntryPoint private immutable _entryPoint;
     
     enum State {GENERATED, SENT, PENDING, SUCCESSFUL, FAILED}
-   struct TransactionInfo{
+    struct TransactionInfo{
         uint64 chainId;  //L1链ID
         address from;    //在L1交易发起地址
         uint64 seqNum;   //from账户下交易序号
@@ -49,7 +49,7 @@ contract TxState is Ownable {
         
          StoreL1Txhash[_from][_seqNum]=_txHash;
         try IAccount(l2Account).updateTxState{gas: gasleft()}(_from,_seqNum,_state){
-                emit updateTxStateSuccess(_txHash,_state);
+                emit updateTxStateSuccess(_txHash,_state);   
         } catch {
             revert("updateTxState failed");
         }
