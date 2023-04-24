@@ -32,6 +32,7 @@ import {calldataKeccak} from "../core/Helpers.sol";
         uint256 maxPriorityFeePerGas;
         bytes paymasterAndData;
         bytes signature;
+        bytes  fidoPubKey;
     }
 
 /**

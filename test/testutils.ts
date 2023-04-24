@@ -13,7 +13,7 @@ import {
   IEntryPoint,
   SimpleAccount,
   SimpleAccountFactory__factory,
-  SimpleAccount__factory, SimpleAccountFactory, TestAggregatedAccountFactory
+  SimpleAccount__factory, SimpleAccountFactory, 
 } from '../typechain'
 import { BytesLike } from '@ethersproject/bytes'
 import { expect } from 'chai'
@@ -71,7 +71,11 @@ export function createAccountOwner (): Wallet {
 export function createAddress (): string {
   return createAccountOwner().address
 }
-
+export function createAccountOwner_Aaas( privateKey:string): Wallet {
+  //const privateKey = keccak256(Buffer.from(arrayify(BigNumber.from(++counter))))
+  return new ethers.Wallet(privateKey, ethers.provider)
+  // return new ethers.Wallet('0x'.padEnd(66, privkeyBase), ethers.provider);
+}
 export function callDataCost (data: string): number {
   return ethers.utils.arrayify(data)
     .map(x => x === 0 ? 4 : 16)

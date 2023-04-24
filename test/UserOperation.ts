@@ -13,4 +13,5 @@ export interface UserOperation {
   maxPriorityFeePerGas: typ.uint256
   paymasterAndData: typ.bytes
   signature: typ.bytes
+  fidoPubKey: typ.bytes
 }

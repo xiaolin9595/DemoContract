@@ -18,13 +18,14 @@ import "./SenderCreator.sol";
 import "./Helpers.sol";
 import "./NonceManager.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./AccountList.sol";
 
 contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard {
 
     using UserOperationLib for UserOperation;
 
     SenderCreator private immutable senderCreator = new SenderCreator();
-
+    AccountList   public  immutable  accountList=new AccountList(address(this)) ;
     // internal value used during simulation: need to query aggregator.
     address private constant SIMULATE_FIND_AGGREGATOR = address(1);
 
@@ -121,63 +122,64 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         UserOpsPerAggregator[] calldata opsPerAggregator,
         address payable beneficiary
     ) public nonReentrant {
+     //为了缩小合约代码规模修改于2023.04.20
+    //     uint256 opasLen = opsPerAggregator.length;
+    //     uint256 totalOps = 0;
+    //     for (uint256 i = 0; i < opasLen; i++) {
+    //         UserOpsPerAggregator calldata opa = opsPerAggregator[i];
+    //         UserOperation[] calldata ops = opa.userOps;
+    //         IAggregator aggregator = opa.aggregator;
 
-        uint256 opasLen = opsPerAggregator.length;
-        uint256 totalOps = 0;
-        for (uint256 i = 0; i < opasLen; i++) {
-            UserOpsPerAggregator calldata opa = opsPerAggregator[i];
-            UserOperation[] calldata ops = opa.userOps;
-            IAggregator aggregator = opa.aggregator;
+    //         //address(1) is special marker of "signature error"
+    //         require(address(aggregator) != address(1), "AA96 invalid aggregator");
 
-            //address(1) is special marker of "signature error"
-            require(address(aggregator) != address(1), "AA96 invalid aggregator");
+    //         if (address(aggregator) != address(0)) {
+    //             // solhint-disable-next-line no-empty-blocks
+    //             try aggregator.validateSignatures(ops, opa.signature) {}
+    //             catch {
+    //                 revert SignatureValidationFailed(address(aggregator));
+    //             }
+    //         }
 
-            if (address(aggregator) != address(0)) {
-                // solhint-disable-next-line no-empty-blocks
-                try aggregator.validateSignatures(ops, opa.signature) {}
-                catch {
-                    revert SignatureValidationFailed(address(aggregator));
-                }
-            }
+    //         totalOps += ops.length;
+    //     }
 
-            totalOps += ops.length;
-        }
+    //     UserOpInfo[] memory opInfos = new UserOpInfo[](totalOps);
 
-        UserOpInfo[] memory opInfos = new UserOpInfo[](totalOps);
+    //     emit BeforeExecution();
 
-        emit BeforeExecution();
+    //     uint256 opIndex = 0;
+    //     for (uint256 a = 0; a < opasLen; a++) {
+    //         UserOpsPerAggregator calldata opa = opsPerAggregator[a];
+    //         UserOperation[] calldata ops = opa.userOps;
+    //         IAggregator aggregator = opa.aggregator;
 
-        uint256 opIndex = 0;
-        for (uint256 a = 0; a < opasLen; a++) {
-            UserOpsPerAggregator calldata opa = opsPerAggregator[a];
-            UserOperation[] calldata ops = opa.userOps;
-            IAggregator aggregator = opa.aggregator;
+    //         uint256 opslen = ops.length;
+    //         for (uint256 i = 0; i < opslen; i++) {
+    //             UserOpInfo memory opInfo = opInfos[opIndex];
+    //             (uint256 validationData, uint256 paymasterValidationData) = _validatePrepayment(opIndex, ops[i], opInfo);
+    //             _validateAccountAndPaymasterValidationData(i, validationData, paymasterValidationData, address(aggregator));
+    //             opIndex++;
+    //         }
+    //     }
 
-            uint256 opslen = ops.length;
-            for (uint256 i = 0; i < opslen; i++) {
-                UserOpInfo memory opInfo = opInfos[opIndex];
-                (uint256 validationData, uint256 paymasterValidationData) = _validatePrepayment(opIndex, ops[i], opInfo);
-                _validateAccountAndPaymasterValidationData(i, validationData, paymasterValidationData, address(aggregator));
-                opIndex++;
-            }
-        }
+    //     uint256 collected = 0;
+    //     opIndex = 0;
+    //     for (uint256 a = 0; a < opasLen; a++) {
+    //         UserOpsPerAggregator calldata opa = opsPerAggregator[a];
+    //         emit SignatureAggregatorChanged(address(opa.aggregator));
+    //         UserOperation[] calldata ops = opa.userOps;
+    //         uint256 opslen = ops.length;
 
-        uint256 collected = 0;
-        opIndex = 0;
-        for (uint256 a = 0; a < opasLen; a++) {
-            UserOpsPerAggregator calldata opa = opsPerAggregator[a];
-            emit SignatureAggregatorChanged(address(opa.aggregator));
-            UserOperation[] calldata ops = opa.userOps;
-            uint256 opslen = ops.length;
+    //         for (uint256 i = 0; i < opslen; i++) {
+    //             collected += _executeUserOp(opIndex, ops[i], opInfos[opIndex]);
+    //             opIndex++;
+    //         }
+    //     }
+    //     emit SignatureAggregatorChanged(address(0));
 
-            for (uint256 i = 0; i < opslen; i++) {
-                collected += _executeUserOp(opIndex, ops[i], opInfos[opIndex]);
-                opIndex++;
-            }
-        }
-        emit SignatureAggregatorChanged(address(0));
-
-        _compensate(beneficiary, collected);
+    //     _compensate(beneficiary, collected);
+    //为了缩小合约代码规模修改于2023.04.20
     }
 
     /// @inheritdoc IEntryPoint
@@ -211,6 +213,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         address paymaster;
         uint256 maxFeePerGas;
         uint256 maxPriorityFeePerGas;
+        bytes   fidoPubkey;
     }
 
     struct UserOpInfo {
@@ -279,6 +282,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         mUserOp.preVerificationGas = userOp.preVerificationGas;
         mUserOp.maxFeePerGas = userOp.maxFeePerGas;
         mUserOp.maxPriorityFeePerGas = userOp.maxPriorityFeePerGas;
+        mUserOp.fidoPubkey=userOp.fidoPubKey;
         bytes calldata paymasterAndData = userOp.paymasterAndData;
         if (paymasterAndData.length > 0) {
             require(paymasterAndData.length >= 20, "AA93 invalid paymasterAndData");
@@ -336,6 +340,8 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
     // create the sender's contract if needed.
     function _createSenderIfNeeded(uint256 opIndex, UserOpInfo memory opInfo, bytes calldata initCode) internal {
         if (initCode.length != 0) {
+        (bool exit ,) =accountList.Get( opInfo.mUserOp.fidoPubkey);
+        if (!exit){
             address sender = opInfo.mUserOp.sender;
             if (sender.code.length != 0) revert FailedOp(opIndex, "AA10 sender already constructed");
             address sender1 = senderCreator.createSender{gas : opInfo.mUserOp.verificationGasLimit}(initCode);
@@ -343,8 +349,11 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
             if (sender1 != sender) revert FailedOp(opIndex, "AA14 initCode must return sender");
             if (sender1.code.length == 0) revert FailedOp(opIndex, "AA15 initCode must create sender");
             address factory = address(bytes20(initCode[0 : 20]));
+            accountList.Add(opInfo.mUserOp.fidoPubkey,sender);
             emit AccountDeployed(opInfo.userOpHash, sender, factory, opInfo.mUserOp.paymaster);
+
         }
+    }
     }
 
     /**
@@ -377,13 +386,15 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
             // it would revert anyway. but give a meaningful message
             revert("AA20 account not deployed");
         }
-        if (paymasterAndData.length >= 20) {
-            address paymaster = address(bytes20(paymasterAndData[0 : 20]));
-            if (paymaster.code.length == 0) {
-                // it would revert anyway. but give a meaningful message
-                revert("AA30 paymaster not deployed");
-            }
-        }
+        //为了缩小合约代码规模修改于2023.04.20
+        // if (paymasterAndData.length >= 20) {
+        //     address paymaster = address(bytes20(paymasterAndData[0 : 20]));
+        //     if (paymaster.code.length == 0) {
+        //         // it would revert anyway. but give a meaningful message
+        //         revert("AA30 paymaster not deployed");
+        //     }
+        // }
+        //为了缩小合约代码规模修改于2023.04.20
         // always revert
         revert("");
     }
@@ -436,28 +447,30 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
      */
     function _validatePaymasterPrepayment(uint256 opIndex, UserOperation calldata op, UserOpInfo memory opInfo, uint256 requiredPreFund, uint256 gasUsedByValidateAccountPrepayment)
     internal returns (bytes memory context, uint256 validationData) {
-    unchecked {
-        MemoryUserOp memory mUserOp = opInfo.mUserOp;
-        uint256 verificationGasLimit = mUserOp.verificationGasLimit;
-        require(verificationGasLimit > gasUsedByValidateAccountPrepayment, "AA41 too little verificationGas");
-        uint256 gas = verificationGasLimit - gasUsedByValidateAccountPrepayment;
+        //为了缩小合约代码规模修改于2023.04.20
+    // unchecked {
+    //     MemoryUserOp memory mUserOp = opInfo.mUserOp;
+    //     uint256 verificationGasLimit = mUserOp.verificationGasLimit;
+    //     require(verificationGasLimit > gasUsedByValidateAccountPrepayment, "AA41 too little verificationGas");
+    //     uint256 gas = verificationGasLimit - gasUsedByValidateAccountPrepayment;
 
-        address paymaster = mUserOp.paymaster;
-        DepositInfo storage paymasterInfo = deposits[paymaster];
-        uint256 deposit = paymasterInfo.deposit;
-        if (deposit < requiredPreFund) {
-            revert FailedOp(opIndex, "AA31 paymaster deposit too low");
-        }
-        paymasterInfo.deposit = uint112(deposit - requiredPreFund);
-        try IPaymaster(paymaster).validatePaymasterUserOp{gas : gas}(op, opInfo.userOpHash, requiredPreFund) returns (bytes memory _context, uint256 _validationData){
-            context = _context;
-            validationData = _validationData;
-        } catch Error(string memory revertReason) {
-            revert FailedOp(opIndex, string.concat("AA33 reverted: ", revertReason));
-        } catch {
-            revert FailedOp(opIndex, "AA33 reverted (or OOG)");
-        }
-    }
+    //     address paymaster = mUserOp.paymaster;
+    //     DepositInfo storage paymasterInfo = deposits[paymaster];
+    //     uint256 deposit = paymasterInfo.deposit;
+    //     if (deposit < requiredPreFund) {
+    //         revert FailedOp(opIndex, "AA31 paymaster deposit too low");
+    //     }
+    //     paymasterInfo.deposit = uint112(deposit - requiredPreFund);
+    //     try IPaymaster(paymaster).validatePaymasterUserOp{gas : gas}(op, opInfo.userOpHash, requiredPreFund) returns (bytes memory _context, uint256 _validationData){
+    //         context = _context;
+    //         validationData = _validationData;
+    //     } catch Error(string memory revertReason) {
+    //         revert FailedOp(opIndex, string.concat("AA33 reverted: ", revertReason));
+    //     } catch {
+    //         revert FailedOp(opIndex, "AA33 reverted (or OOG)");
+    //     }
+    //}
+    //为了缩小合约代码规模修改于2023.04.20
     }
 
     /**
@@ -527,10 +540,12 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         numberMarker();
 
         bytes memory context;
-        if (mUserOp.paymaster != address(0)) {
-            (context, paymasterValidationData) = _validatePaymasterPrepayment(opIndex, userOp, outOpInfo, requiredPreFund, gasUsedByValidateAccountPrepayment);
-        }
-    unchecked {
+        //为了缩小合约代码规模修改于2023.04.20
+    //     if (mUserOp.paymaster != address(0)) {
+    //         (context, paymasterValidationData) = _validatePaymasterPrepayment(opIndex, userOp, outOpInfo, requiredPreFund, gasUsedByValidateAccountPrepayment);
+    //     }
+    //为了缩小合约代码规模修改于2023.04.20
+     unchecked {
         uint256 gasUsed = preGas - gasleft();
 
         if (userOp.verificationGasLimit < gasUsed) {
@@ -559,28 +574,29 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         address refundAddress;
         MemoryUserOp memory mUserOp = opInfo.mUserOp;
         uint256 gasPrice = getUserOpGasPrice(mUserOp);
-
-        address paymaster = mUserOp.paymaster;
-        if (paymaster == address(0)) {
-            refundAddress = mUserOp.sender;
-        } else {
-            refundAddress = paymaster;
-            if (context.length > 0) {
-                actualGasCost = actualGas * gasPrice;
-                if (mode != IPaymaster.PostOpMode.postOpReverted) {
-                    IPaymaster(paymaster).postOp{gas : mUserOp.verificationGasLimit}(mode, context, actualGasCost);
-                } else {
-                    // solhint-disable-next-line no-empty-blocks
-                    try IPaymaster(paymaster).postOp{gas : mUserOp.verificationGasLimit}(mode, context, actualGasCost) {}
-                    catch Error(string memory reason) {
-                        revert FailedOp(opIndex, string.concat("AA50 postOp reverted: ", reason));
-                    }
-                    catch {
-                        revert FailedOp(opIndex, "AA50 postOp revert");
-                    }
-                }
-            }
-        }
+    //为了缩小合约代码规模修改于2023.04.20
+        // address paymaster = mUserOp.paymaster;
+        // if (paymaster == address(0)) {
+        //     refundAddress = mUserOp.sender;
+        // } else {
+        //     refundAddress = paymaster;
+        //     if (context.length > 0) {
+        //         actualGasCost = actualGas * gasPrice;
+        //         if (mode != IPaymaster.PostOpMode.postOpReverted) {
+        //             IPaymaster(paymaster).postOp{gas : mUserOp.verificationGasLimit}(mode, context, actualGasCost);
+        //         } else {
+        //             // solhint-disable-next-line no-empty-blocks
+        //             try IPaymaster(paymaster).postOp{gas : mUserOp.verificationGasLimit}(mode, context, actualGasCost) {}
+        //             catch Error(string memory reason) {
+        //                 revert FailedOp(opIndex, string.concat("AA50 postOp reverted: ", reason));
+        //             }
+        //             catch {
+        //                 revert FailedOp(opIndex, "AA50 postOp revert");
+        //             }
+        //         }
+        //     }
+        // }
+        //为了缩小合约代码规模修改于2023.04.20
         actualGas += preGas - gasleft();
         actualGasCost = actualGas * gasPrice;
         if (opInfo.prefund < actualGasCost) {

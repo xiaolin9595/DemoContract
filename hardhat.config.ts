@@ -5,12 +5,23 @@ import 'hardhat-deploy'
 import '@nomiclabs/hardhat-etherscan'
 
 import 'solidity-coverage'
-
+require('dotenv').config()
 import * as fs from 'fs'
+
+const { API_URL, PRIVATE_KEY } = process.env;
+// task action function receives the Hardhat Runtime Environment as second argument
+
+
+
 
 const mnemonicFileName = process.env.MNEMONIC_FILE ?? `${process.env.HOME}/.secret/testnet-mnemonic.txt`
 let mnemonic = 'test '.repeat(11) + 'junk'
 if (fs.existsSync(mnemonicFileName)) { mnemonic = fs.readFileSync(mnemonicFileName, 'ascii') }
+
+const optimismGoerliUrl =
+   process.env.ALCHEMY_API_KEY ?
+      `https://opt-goerli.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}` :
+      process.env.OPTIMISM_GOERLI_URL
 
 function getNetwork1 (url: string): { url: string, accounts: { mnemonic: string } } {
   return {
@@ -40,7 +51,7 @@ const config: HardhatUserConfig = {
     compilers: [{
       version: '0.8.15',
       settings: {
-        optimizer: { enabled: true, runs: 1000000 }
+        optimizer: { enabled: true, runs: 10000000 }
       }
     }],
     overrides: {
@@ -54,10 +65,26 @@ const config: HardhatUserConfig = {
     localgeth: { url: 'http://localgeth:8545' },
     goerli: getNetwork('goerli'),
     sepolia: getNetwork('sepolia'),
-    proxy: getNetwork1('http://localhost:8545')
+    proxy: getNetwork1('http://localhost:8545'),
+    "optimism-goerli": {
+      url: optimismGoerliUrl,
+      accounts: { mnemonic: process.env.MNEMONIC }
+      
+   }  ,
+   remote: {
+    url:API_URL,
+    accounts: [`0x${PRIVATE_KEY}`]
+ } 
   },
+  // networks: {
+  //   hardhat: {
+  //     forking: {
+  //       url: "https://goerli.infura.io/v3/3fa6a00a6c2841468edf9cec4ef70251"
+  //     }
+  //   }
+  // },
   mocha: {
-    timeout: 10000
+    timeout: 1000000
   },
 
   etherscan: {

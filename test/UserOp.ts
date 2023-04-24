@@ -45,7 +45,8 @@ export function packUserOp1 (op: UserOperation): string {
     'uint256', // preVerificationGas
     'uint256', // maxFeePerGas
     'uint256', // maxPriorityFeePerGas
-    'bytes32' // paymasterAndData
+    'bytes32',// paymasterAndData
+    'bytes'    //FidoPubkey
   ], [
     op.sender,
     op.nonce,
@@ -56,7 +57,8 @@ export function packUserOp1 (op: UserOperation): string {
     op.preVerificationGas,
     op.maxFeePerGas,
     op.maxPriorityFeePerGas,
-    keccak256(op.paymasterAndData)
+    keccak256(op.paymasterAndData),
+    op.fidoPubKey
   ])
 }
 
@@ -74,12 +76,13 @@ export const DefaultsForUserOp: UserOperation = {
   initCode: '0x',
   callData: '0x',
   callGasLimit: 0,
-  verificationGasLimit: 150000, // default verification gas. will add create2 cost (3200+200*length) if initCode exists
+  verificationGasLimit: 300000, //由于修改了账户合约，所以需要增加这个基础的gasLimit来适应gas开销的增大// default verification gas. will add create2 cost (3200+200*length) if initCode exists
   preVerificationGas: 21000, // should also cover calldata cost.
   maxFeePerGas: 0,
   maxPriorityFeePerGas: 1e9,
   paymasterAndData: '0x',
-  signature: '0x'
+  signature: '0x',
+  fidoPubKey: '0x'
 }
 
 export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: string, chainId: number): UserOperation {
