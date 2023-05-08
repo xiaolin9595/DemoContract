@@ -2,7 +2,6 @@
 import './aa.init'
 import { BigNumber, Event, Wallet } from 'ethers'
 import { expect } from 'chai'
-
 import {
   EntryPoint,
   SimpleAccount,
@@ -63,7 +62,7 @@ describe('EntryPoint', function () {
   
     let accountOwner: Wallet
     const ethersSigner = ethers.provider.getSigner()
-    let dIDDocument:DID_Document
+
 
 
 describe('#generate account address and initcode', () => {
@@ -90,23 +89,44 @@ describe('#generate account address and initcode', () => {
      //实例化SimpleAccount合约
       let simpleAccount_factor=await ethers.getContractFactory("SimpleAccount")
       Account=await simpleAccount_factor.attach('0x72B0D6FA5DbAAE49feED0d38A085aDB4DB2fD2B7');
-     
-
       // let trans= await address1.populateTransaction({
       //   to: Account.address ,
       //   value: parseEther('0.003'),
       //   gasLimit: 1e7,
       // });
+      let simpleAccountFactory_factory= await ethers.getContractFactory("SimpleAccountFactory")
+      let simpleAccountFactory=await simpleAccountFactory_factory.attach('0x8a561f1B3568BA765F9Ec0B780a7c2D8E400899B');
+      //simpleAccountFactory=await simpleAccountFactory_factory.attach("0x6a61a1e3C1c329d01F909e7767760473D65C7170")
+     
+      const salt = 123
+      console.log("simpleAccountFactory=",simpleAccountFactory.address)
+      const  fidoPubKey1:BytesLike ='0xa50102032620012158207b71e94311177f954739ed075bd867d35bb59ab562c4f2fd61c48cef861e77c1225820eff2a13e424510fb5d4ae30dee1531d7837d6e3452139ac9056789a70b07b325';
+      let  preAddr=await simpleAccountFactory.getAddress(fidoPubKey1,salt)
+      console.log("simpleaccount address=",preAddr)
+      console.log("FidoPubKey:%s",fidoPubKey1)
+      // let tx:Transaction{
+            
+      // }
 
-      //let rec=await address1.sendTransaction(trans)
-      let FidoPubKey1='0x4554480000000000000000000000000000000000000000000000000000000000'
-     // let data=await Account.interface.encodeFunctionData('L1transfer', [1,address1.address,address2.address, parseEther('0.01'), '0x1234567890'])
-     //生成userop的calldata
-      const callData1 = Account.interface.encodeFunctionData('L1transfer', [1,address1.address,address2.address, parseEther('0.01'), '0x1234567890']) 
+      let trans= await address1.populateTransaction({
+        to: preAddr ,
+        value: parseEther('0.005')
+      });
+
+      let rec=await address1.sendTransaction(trans)
+      //console.log("rec=",rec)
+      let banlance0=await getBalance(preAddr)
+      console.log("banlance0=",banlance0)
+      let initCode: BytesLike
+      initCode= getAccountInitCode(fidoPubKey1, simpleAccountFactory,salt)
+    
+      console.log("initCode:",initCode)
+      
       const userOp = await fillAndSign({
-        sender: Account.address,
-        callData: callData1,
-        fidoPubKey:FidoPubKey1,
+        sender: preAddr,
+        initCode:initCode,
+        fidoPubKey:fidoPubKey1,
+       
       }, ethersSigner, entryPoint)
       console.log("userOp:",userOp)
       
@@ -115,11 +135,6 @@ describe('#generate account address and initcode', () => {
         gasLimit: 1e7
       }).then(async t => await t.wait())
       console.log('rcpt.gasUsed=', recp.gasUsed.toString())
-      let seqNum=await Account.SequenceNumber(address1.address)
-      console.log("seqNum=",seqNum)
-      let txInfo = await Account.TxsInfo(address1.address,seqNum)
-      console.log("txInfo=",txInfo)
-   
       }
       )
     

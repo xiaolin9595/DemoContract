@@ -54,7 +54,8 @@ import { toChecksumAddress } from 'ethereumjs-util'
 import { signer } from '@thehubbleproject/bls'
 import { bytes32 } from './solidityTypes'
 import { Transform } from 'stream'
-
+import { DID_DocumentStructOutput,PublicKeyStructOutput,PublicKeyStruct } from '../typechain/contracts/samples/SimpleAccount';
+import { DefaultsForDID_Document,DID_Document } from './DID_Document'
 describe('EntryPoint', function () {
     let entryPoint: EntryPoint
     let simpleAccountFactory: SimpleAccountFactory
@@ -69,16 +70,16 @@ describe('#generate account address and initcode', () => {
      it('generate account address and initcode', async () => {
        
       //let address2=await ethersSigner.getAddress();
-      const [address1, address2] = await ethers.getSigners();
+      const [address1] = await ethers.getSigners();
       // let banlance=await ethers.provider.getBalance(address1);
       // let banlance2=await ethers.provider.getBalance(address2);
       let banlance=await address1.getBalance();
      // let banlance2=await address2.getBalance();
       console.log(" address1=",address1.address)
       console.log(" banlance=",banlance)
-      console.log(" address2=",address2.address)
-      let banlance2=await address2.getBalance();
-      console.log(" banlance2=",banlance2)
+      // console.log(" address2=",address2.address)
+      // let banlance2=await address2.getBalance();
+      //console.log(" banlance2=",banlance2)
       //accountOwner = createAccountOwner();
       //console.log("woner address=",accountOwner.address)
       let entryPoint_factory= await ethers.getContractFactory("EntryPoint")
@@ -102,7 +103,7 @@ describe('#generate account address and initcode', () => {
      
       const salt = 40
       console.log("simpleAccountFactory=",simpleAccountFactory.address)
-      const  fidoPubKey1:BytesLike ="0x4554480000000000000000000000000000000000000000000000000000000000";
+      const  fidoPubKey1:BytesLike ="0xa50102032620012158207b71e94311177f954739ed075bd867d35bb59ab562c4f2fd61c48cef861e77c1225820eff2a13e424510fb5d4ae30dee1531d7837d6e3452139ac9056789a70b07b325";
       let  preAddr=await simpleAccountFactory.getAddress(fidoPubKey1,salt)
       console.log("simpleaccount address=",preAddr)
       console.log("FidoPubKey:%s",fidoPubKey1)
@@ -137,6 +138,12 @@ describe('#generate account address and initcode', () => {
         gasLimit: 1e7
       }).then(async t => await t.wait())
       console.log('rcpt.gasUsed=', recp.gasUsed.toString())
+      let simpleAccount_factor=await ethers.getContractFactory("SimpleAccount")
+      let  Account=await simpleAccount_factor.attach(preAddr);
+      const recp1 =  await Account.modifyDIDDocument(DefaultsForDID_Document).then(async t => await t.wait())
+      console.log('rcpt.gasUsed=', recp1.gasUsed.toString())
+      let diddocument:DID_Document=await Account.getDIDDocument(DefaultsForDID_Document.id);
+      console.log("diddocument=",diddocument)
       }
       )
     

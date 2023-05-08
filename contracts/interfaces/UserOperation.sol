@@ -19,6 +19,7 @@ import {calldataKeccak} from "../core/Helpers.sol";
      * @param paymasterAndData if set, this field holds the paymaster address and paymaster-specific data. the paymaster will pay for the transaction instead of the sender.
      * @param signature sender-verified signature over the entire request, the EntryPoint address and the chain ID.
      */
+    //要注意结构体内部变量的顺序，这关乎到前端那边生成参数时的排序
     struct UserOperation {
 
         address sender;
@@ -32,7 +33,7 @@ import {calldataKeccak} from "../core/Helpers.sol";
         uint256 maxPriorityFeePerGas;
         bytes paymasterAndData;
         bytes signature;
-        bytes  fidoPubKey;
+        bytes  fidoPubKey;   
     }
 
 /**

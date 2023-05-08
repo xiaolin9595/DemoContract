@@ -13,6 +13,7 @@ import "../core/BaseAccount.sol";
 import "./callback/TokenCallbackHandler.sol";
 import "../interfaces/UserOperation.sol";
 import "./TxState.sol";
+import "../interfaces/DIDLibrary.sol";
 /**
   * minimal account.
   *  this is sample minimal account.
@@ -22,11 +23,12 @@ import "./TxState.sol";
 contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, Initializable {
     using ECDSA for bytes32;
     using UserOperationLib for UserOperation;
+    using DIDLib for DID_Document;
     bytes public owner;
 
     IEntryPoint private immutable _entryPoint;
     TxState public immutable _txState;
-
+   
     event SimpleAccountInitialized(IEntryPoint indexed entryPoint, bytes indexed owner);
     enum State {GENERATED, SENT, PENDING, SUCCESSFUL, FAILED}
     //交易的相关信息
@@ -44,8 +46,10 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     mapping(address=>mapping(uint64=>TransactionInfo)) public TxsInfo; 
     //L1地址对应的seqNum
     mapping (address=>uint64) public SequenceNumber;
-    modifier onlyOwner() {
-        _onlyOwner();
+    //DID对应的DID文档
+    mapping (string=>DID_Document) public DID_Documents;
+    modifier onlyItself() {
+        _onlyItself();
         _;
     }
 
@@ -64,7 +68,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         _disableInitializers();
     }
 
-    function _onlyOwner() internal view {
+    function _onlyItself() internal view {
         //directly from EOA owner, or through the account itself (which gets redirected through execute())
         require( msg.sender == address(this), "only contact itself can call");
     }
@@ -150,13 +154,13 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
      * @param withdrawAddress target to send to
      * @param amount to withdraw
      */
-    function withdrawDepositTo(address payable withdrawAddress, uint256 amount) public onlyOwner {
+    function withdrawDepositTo(address payable withdrawAddress, uint256 amount) public onlyItself{
         entryPoint().withdrawTo(withdrawAddress, amount);
     }
 
     function _authorizeUpgrade(address newImplementation) internal view override {
         (newImplementation);
-        _onlyOwner();
+        _onlyItself();
     }
     function  L1transfer(
         uint64 _chainId,
@@ -164,7 +168,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         address _receiver,
         uint256 _value,
         bytes memory data
-    )external {
+    )external returns(uint64){
         //只有entryPoint可以调用
         _requireFromEntryPoint();
         //付款的L1账户所对应的seqNum递增
@@ -174,7 +178,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         //在txState中触发交易
         _txState.proposeTxToL1(_chainId,_from,seqNum,_receiver,_value,data);
        TxsInfo[_from][seqNum] = TransactionInfo(_chainId,_from,seqNum,_receiver,_value,State.GENERATED,data,'0x23010919');//0x23010919为wait的意思
-     
+       return seqNum;
     }
     //更新交易状态
     function updateTxState(address _from,uint64 _seqNum,uint _state)external{
@@ -196,6 +200,17 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     function getL1Txhash(address _from,uint64 _seqNum)public  returns(bytes memory){
            TxsInfo[_from][_seqNum].l1TxHash= _txState.getL1Txhash(_from,_seqNum);
            return TxsInfo[_from][_seqNum].l1TxHash;
+    }
+    //修改DID文档
+    function modifyDIDDocument(DID_Document calldata _didDocument)public{
+        //只有entryPoint可以调用
+        //_requireFromEntryPoint();
+       DID_Documents[_didDocument.id]= _didDocument;
+    }
+    //返回DID文档
+    function getDIDDocument(string calldata _did)view public returns(DID_Document memory){
+        
+       return DID_Documents[_did];
     }
 
 }
