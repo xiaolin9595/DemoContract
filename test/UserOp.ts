@@ -76,7 +76,7 @@ export const DefaultsForUserOp: UserOperation = {
   initCode: '0x',
   callData: '0x',
   callGasLimit: 0,
-  verificationGasLimit: 300000, //由于修改了账户合约，所以需要增加这个基础的gasLimit来适应gas开销的增大// default verification gas. will add create2 cost (3200+200*length) if initCode exists
+  verificationGasLimit: 500000, //由于修改了账户合约，所以需要增加这个基础的gasLimit来适应gas开销的增大// default verification gas. will add create2 cost (3200+200*length) if initCode exists
   preVerificationGas: 21000, // should also cover calldata cost.
   maxFeePerGas: 0,
   maxPriorityFeePerGas: 1e9,

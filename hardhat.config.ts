@@ -38,7 +38,7 @@ function getNetwork (name: string): { url: string, accounts: { mnemonic: string 
 const optimizedComilerSettings = {
   version: '0.8.17',
   settings: {
-    optimizer: { enabled: true, runs: 1000000 },
+    optimizer: { enabled: true, runs: 20000},
     viaIR: true
   }
 }

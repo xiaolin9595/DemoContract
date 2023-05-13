@@ -62,8 +62,9 @@ contract TxState is Ownable {
         address _receiver,
         uint256 _value,
         bytes memory _data)  external {
-      
+      //_requireFromEntryPoint();
       TransactionInfo memory txInfo=(TransactionInfo(_chainId,_from,_seqNum ,_receiver,_value,State.GENERATED,_data));
+      
       emit L1transferEvent(msg.sender,_from,_seqNum,txInfo);
       
       
