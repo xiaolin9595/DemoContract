@@ -83,7 +83,7 @@ describe('#generate account address and initcode', () => {
       //console.log(" banlance2=",banlance2)
       //accountOwner = createAccountOwner();
       //console.log("woner address=",accountOwner.address)
-      let block=await ethers.provider.getBlock("latest").then(t=>t.gasLimit)
+     // let block=await ethers.provider.getBlock("latest").then(t=>t.gasLimit)
       //console.log("gasLimit=",block.)
       let entryPoint_factory= await ethers.getContractFactory("EntryPoint")
       entryPoint=await entryPoint_factory.deploy({gasPrice:875000000,gasLimit: 1e07});
@@ -101,18 +101,18 @@ describe('#generate account address and initcode', () => {
       console.log("aaasCreationPaymaster address=",aaasCreationPaymaster.address)
       //console.log("entrypoint banlance=",balance)
      //创建Txstate合约
-     let txState_factory= await ethers.getContractFactory("TxState")
-     let txState=await txState_factory.deploy(entryPoint.address);
-     console.log("txState address=",txState.address)
+     let txState= await entryPoint.txState()
+     
+     console.log("txState address=",txState)
       let simpleAccountFactory_factory= await ethers.getContractFactory("SimpleAccountFactory")
-      simpleAccountFactory=await simpleAccountFactory_factory.deploy(entryPoint.address,txState.address);
+      simpleAccountFactory=await simpleAccountFactory_factory.deploy(entryPoint.address,txState);
       //simpleAccountFactory=await simpleAccountFactory_factory.attach("0x6a61a1e3C1c329d01F909e7767760473D65C7170")
      
       const salt = 40
       console.log("simpleAccountFactory=",simpleAccountFactory.address)
       const  fidoPubKey1:BytesLike ="0xa50102032620012158207b71e94311177f954739ed075bd867d35bb59ab562c4f2fd61c48cef861e77c1225820eff2a13e424510fb5d4ae30dee1531d7837d6e3452139ac9056789a70b07b325";
       let  preAddr=await simpleAccountFactory.getAddress(fidoPubKey1,salt)
-      console.log("simpleaccount address=",preAddr)
+      //console.log("simpleaccount address=",preAddr)
       console.log("FidoPubKey:%s",fidoPubKey1)
     
       if (address1.address=='0xff11f488907c6A74155B4e0424BB861Cb24eb957'){
@@ -150,10 +150,31 @@ describe('#generate account address and initcode', () => {
       let  Account=await simpleAccount_factor.attach(preAddr);
       const recp1 =  await Account.modifyDIDDocument(DefaultsForDID_Document).then(async t => await t.wait())
       console.log('rcpt.gasUsed=', recp1.gasUsed.toString())
-      let diddocument:DID_Document=await Account.getDIDDocument(DefaultsForDID_Document.id);
-      console.log("diddocument=",diddocument)
-      let banlance2=await ethers.provider.getBalance(preAddr);
-      console.log(" sender balance=",banlance2)
+      // let diddocument:DID_Document=await Account.getDIDDocument(DefaultsForDID_Document.id);
+      // console.log("diddocument=",diddocument)
+      // let banlance2=await ethers.provider.getBalance(preAddr);
+      // console.log(" sender balance=",banlance2)
+      let trans= await address1.populateTransaction({
+        to: Account.address ,
+        value: parseEther('0.003'),
+        gasLimit: 1e7,
+      });
+
+      let rec=await address1.sendTransaction(trans)
+      const txdata = hexConcat([defaultAbiCoder.encode(['uint64', 'address','address','uint256','bytes'], [1, Account.address,Account.address,ethers.utils.parseEther("0.1"),'0x1234567890'])])
+      const userOp1= await fillAndSign({
+        sender: preAddr,
+        l1TxData:txdata,
+        fidoPubKey:fidoPubKey1,
+       
+      }, ethersSigner, entryPoint)
+      console.log("userOp:",userOp1)
+    
+      const recp2 = await entryPoint.handleOps([userOp1], address1.address, {
+        maxFeePerGas: 1e9,
+        gasLimit: 1e7
+      }).then(async t => await t.wait())
+      console.log('rcpt.event=', recp2.events)
       }
       )
     

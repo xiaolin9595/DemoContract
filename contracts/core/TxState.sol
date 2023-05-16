@@ -57,16 +57,17 @@ contract TxState is Ownable {
     }
     //发出交易事件
     function proposeTxToL1(uint64 _chainId,
+        address senderAccount,
         address _from,
         uint64 _seqNum,
         address _receiver,
         uint256 _value,
-        bytes memory _data)  external {
-      //_requireFromEntryPoint();
+        bytes memory _data)  external  {
+      _requireFromEntryPoint();
       TransactionInfo memory txInfo=(TransactionInfo(_chainId,_from,_seqNum ,_receiver,_value,State.GENERATED,_data));
       
-      emit L1transferEvent(msg.sender,_from,_seqNum,txInfo);
-      
+      emit L1transferEvent(senderAccount,_from,_seqNum,txInfo);
+     
       
     }
     //获取L1交易hash

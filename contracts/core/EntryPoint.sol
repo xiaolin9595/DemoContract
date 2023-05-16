@@ -19,13 +19,14 @@ import "./Helpers.sol";
 import "./NonceManager.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AccountList.sol";
-
+import "./TxState.sol";
 contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard {
 
     using UserOperationLib for UserOperation;
 
     SenderCreator private immutable senderCreator = new SenderCreator();
-    AccountList   public  immutable  accountList=new AccountList(address(this)) ;
+    AccountList   public  immutable  accountList  =new AccountList(address(this)) ;
+    TxState       public  immutable  txState      =new TxState(this) ;
     // internal value used during simulation: need to query aggregator.
     address private constant SIMULATE_FIND_AGGREGATOR = address(1);
 
@@ -62,7 +63,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         uint256 preGas = gasleft();
         bytes memory context = getMemoryBytesFromOffset(opInfo.contextOffset);
 
-        try this.innerHandleOp(userOp.callData, opInfo, context) returns (uint256 _actualGasCost) {
+        try this.innerHandleOp(userOp.callData,userOp.l1TxData ,opInfo, context) returns (uint256 _actualGasCost) {
             collected = _actualGasCost;
         } catch {
             bytes32 innerRevertCode;
@@ -213,6 +214,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         address paymaster;
         uint256 maxFeePerGas;
         uint256 maxPriorityFeePerGas;
+        bytes   l1TxData;
         bytes   fidoPubkey;
     }
 
@@ -228,7 +230,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
      * inner function to handle a UserOperation.
      * Must be declared "external" to open a call context, but it can only be called by handleOps.
      */
-    function innerHandleOp(bytes memory callData, UserOpInfo memory opInfo, bytes calldata context) external returns (uint256 actualGasCost) {
+    function innerHandleOp(bytes memory callData,bytes memory l1TxData,UserOpInfo memory opInfo, bytes calldata context) external returns (uint256 actualGasCost) {
         uint256 preGas = gasleft();
         require(msg.sender == address(this), "AA92 internal call only");
         MemoryUserOp memory mUserOp = opInfo.mUserOp;
@@ -256,6 +258,31 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
                 mode = IPaymaster.PostOpMode.opReverted;
             }
         }
+    //        struct TransactionInfo{
+    //     uint64 chainId;  //L1链ID
+    //     address from;    //在L1交易发起地址
+    //     uint64 seqNum;   //from账户下交易序号
+    //     address receiver; //L1交易接收地址
+    //     uint256 amount;   //交易的金额大小
+    //     State   state;   //交易的状态
+    //     bytes   data;    //交易携带的合约调用数据 
+    // }
+        if(l1TxData.length>0){
+        uint64 chainId;  //L1链ID
+        address from;    //在L1交易发起地址
+        uint64 seqNum;   //from账户下交易序号
+        address receiver; //L1交易接收地址
+        uint256 amount;   //交易的金额大小
+        bytes  memory data;    //交易携带的合约调用数据 
+        (chainId, from,receiver,amount,data) = abi.decode(l1TxData,(uint64, address,address,uint256,bytes));
+        try IAccount(mUserOp.sender).addL1txInfo{gas : gasleft()}(chainId, from,receiver,amount,data)
+        returns (uint64 _seqNum) {
+            seqNum = _seqNum;
+        } catch Error(string memory revertReason) {
+            revert FailedOp(0, string.concat("Aaas reverted: ", revertReason));
+        }
+        txState.proposeTxToL1(chainId,mUserOp.sender, from,seqNum,receiver,amount,data);
+        }
 
     unchecked {
         uint256 actualGas = preGas - gasleft() + opInfo.preOpGas;
@@ -263,7 +290,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         return _handlePostOp(0, mode, opInfo, context, actualGas);
     }
     }
-
+    
     /**
      * generate a request Id - unique identifier for this request.
      * the request ID is a hash over the content of the userOp (except the signature), the entrypoint and the chainid.
@@ -283,6 +310,7 @@ contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard 
         mUserOp.preVerificationGas = userOp.preVerificationGas;
         mUserOp.maxFeePerGas = userOp.maxFeePerGas;
         mUserOp.maxPriorityFeePerGas = userOp.maxPriorityFeePerGas;
+        mUserOp.l1TxData=userOp.l1TxData;
         mUserOp.fidoPubkey=userOp.fidoPubKey;
         bytes calldata paymasterAndData = userOp.paymasterAndData;
         if (paymasterAndData.length > 0) {

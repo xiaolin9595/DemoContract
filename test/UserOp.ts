@@ -81,6 +81,7 @@ export const DefaultsForUserOp: UserOperation = {
   maxFeePerGas: 0,
   maxPriorityFeePerGas: 1e9,
   paymasterAndData: '0x',
+  l1TxData: '0x',
   signature: '0x',
   fidoPubKey: '0x'
 }

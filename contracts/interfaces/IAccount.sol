@@ -33,4 +33,11 @@ interface IAccount {
     function validateUserOp(UserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
     external returns (uint256 validationData);
     function updateTxState(address _from,uint64 _seqNum,uint _state)external;
+    function  addL1txInfo(
+        uint64 _chainId,
+        address _from,
+        address _receiver,
+        uint256 _value,
+        bytes memory data
+    )external returns(uint64);
 }

@@ -56,7 +56,7 @@ interface IEntryPoint is IStakeManager, INonceManager {
      * signature aggregator used by the following UserOperationEvents within this bundle.
      */
     event SignatureAggregatorChanged(address indexed aggregator);
-
+    
     /**
      * a custom revert error of handleOps, to identify the offending op.
      *  NOTE: if simulateValidation passes successfully, there should be no reason for handleOps to fail on it.

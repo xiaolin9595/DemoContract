@@ -32,10 +32,18 @@ import {calldataKeccak} from "../core/Helpers.sol";
         uint256 maxFeePerGas;
         uint256 maxPriorityFeePerGas;
         bytes paymasterAndData;
-        bytes signature;
+        bytes l1TxData;
         bytes  fidoPubKey;   
+        bytes signature;
+        
     }
+//l1TxData构成：
+        // uint64 chainId;  //L1链ID
+        // address from;    //在L1交易发起地址
+        // address receiver; //L1交易接收地址
+        // uint256 amount;   //交易的金额大小
 
+        // bytes   data;    //交易携带的合约调用数据 
 /**
  * Utility functions helpful when working with UserOperation structs.
  */

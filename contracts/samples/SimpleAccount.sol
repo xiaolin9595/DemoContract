@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "../core/BaseAccount.sol";
 import "./callback/TokenCallbackHandler.sol";
 import "../interfaces/UserOperation.sol";
-import "./TxState.sol";
+import "../core/TxState.sol";
 import "../interfaces/DIDLibrary.sol";
 /**
   * minimal account.
@@ -162,7 +162,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         (newImplementation);
         _onlyItself();
     }
-    function  L1transfer(
+    function  addL1txInfo(
         uint64 _chainId,
         address _from,
         address _receiver,
@@ -174,9 +174,6 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         //付款的L1账户所对应的seqNum递增
         SequenceNumber[_from]++;
         uint64 seqNum =SequenceNumber[_from];
-        
-        //在txState中触发交易
-        _txState.proposeTxToL1(_chainId,_from,seqNum,_receiver,_value,data);
        TxsInfo[_from][seqNum] = TransactionInfo(_chainId,_from,seqNum,_receiver,_value,State.GENERATED,data,'0x23010919');//0x23010919为wait的意思
        return seqNum;
     }
