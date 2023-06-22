@@ -46,16 +46,28 @@ contract SimpleAccount is
         SUCCESSFUL,
         FAILED
     }
-    //交易的相关信息
+    /**
+ * TransactionInfo struct
+ * @param chainId L1 Chain ID.
+ * @param from L1 transaction initiation address.
+ * @param seqNum from account transaction sequence number
+ * @param receiver L1 transaction receiving address
+ * @param amount The size of the transaction amount.
+ * @param state Transaction status
+ * @param data Contract call data carried by transactions.
+ * @param l1TxHash L1 transaction hash 
+ */
+ 
+
     struct TransactionInfo {
-        uint64 chainId; //L1链ID
-        address from; //在L1交易发起地址
-        uint64 seqNum; //from账户下交易序号
-        address receiver; //L1交易接收地址
-        uint256 amount; //交易的金额大小
-        State state; //交易的状态
-        bytes data; //交易携带的合约调用数据
-        bytes l1TxHash; //L1交易的哈希
+        uint64 chainId; 
+        address from; 
+        uint64 seqNum; 
+        address receiver; 
+        uint256 amount; 
+        State state; 
+        bytes data;
+        bytes l1TxHash; 
     }
 
     //Transaction information corresponding to the number of transactions
