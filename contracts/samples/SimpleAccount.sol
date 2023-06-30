@@ -47,27 +47,26 @@ contract SimpleAccount is
         FAILED
     }
     /**
- * TransactionInfo struct
- * @param chainId L1 Chain ID.
- * @param from L1 transaction initiation address.
- * @param seqNum from account transaction sequence number
- * @param receiver L1 transaction receiving address
- * @param amount The size of the transaction amount.
- * @param state Transaction status
- * @param data Contract call data carried by transactions.
- * @param l1TxHash L1 transaction hash 
- */
- 
+     * TransactionInfo struct
+     * @param chainId L1 Chain ID.
+     * @param from L1 transaction initiation address.
+     * @param seqNum from account transaction sequence number
+     * @param receiver L1 transaction receiving address
+     * @param amount The size of the transaction amount.
+     * @param state Transaction status
+     * @param data Contract call data carried by transactions.
+     * @param l1TxHash L1 transaction hash
+     */
 
     struct TransactionInfo {
-        uint64 chainId; 
-        address from; 
-        uint64 seqNum; 
-        address receiver; 
-        uint256 amount; 
-        State state; 
+        uint64 chainId;
+        address from;
+        uint64 seqNum;
+        address receiver;
+        uint256 amount;
+        State state;
         bytes data;
-        bytes l1TxHash; 
+        bytes l1TxHash;
     }
 
     //Transaction information corresponding to the number of transactions
