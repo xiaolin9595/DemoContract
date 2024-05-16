@@ -30,10 +30,11 @@ contract SimpleAccount is
     using ECDSA for bytes32;
     using UserOperationLib for UserOperation;
     using DIDLib for DID_Document;
-    bytes32 public owner;
+    bytes32[] public owners;
 
     IEntryPoint private immutable _entryPoint;
     TxState public immutable _txState;
+
 
     event SimpleAccountInitialized(
         IEntryPoint indexed entryPoint,
@@ -147,8 +148,8 @@ contract SimpleAccount is
     }
 
     function _initialize(bytes32 anOwner) internal virtual {
-        owner = anOwner;
-        emit SimpleAccountInitialized(_entryPoint, owner);
+        owners.push(anOwner);
+        emit SimpleAccountInitialized(_entryPoint, anOwner);
     }
 
     // Require the function call went through EntryPoint or owner
@@ -173,11 +174,17 @@ contract SimpleAccount is
             "userOp verify failed"
         );
         bytes32 ownerhash = keccak256(userOp.fidoPubKey);
-        if (owner == ownerhash) return 0;
-
+        uint256 len= owners.length;
+        for (uint256 i = 0; i < len; i++) {
+             if (owners[i]==ownerhash) return 0;
+        }
         return SIG_VALIDATION_FAILED;
     }
-
+    function addFidoDevice(bytes memory fidoPub)external{
+        _requireFromEntryPoint();
+        bytes32 fidoPubHash=keccak256(fidoPub);
+        owners.push(fidoPubHash);
+    }
     function _call(address target, uint256 value, bytes memory data) internal {
         (bool success, bytes memory result) = target.call{value: value}(data);
         if (!success) {
@@ -186,7 +193,9 @@ contract SimpleAccount is
             }
         }
     }
-
+    function getowners() public view returns ( bytes32[] memory){
+        return owners;
+    }
     /**
      * check current account deposit in the entryPoint
      */

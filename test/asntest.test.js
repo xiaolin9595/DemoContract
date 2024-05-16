@@ -48,7 +48,7 @@ import { DefaultsForUserOp, fillAndSign, getUserOpHash, fillUserOpDefaults, fill
 import { UserOperation } from './UserOperation'
 import { PopulatedTransaction, Transaction } from 'ethers/lib/ethers'
 import { ethers } from 'hardhat'
-import { arrayify, defaultAbiCoder, hexConcat, hexZeroPad, parseEther, TransactionTypes } from 'ethers/lib/utils'
+import { arrayify, defaultAbiCoder, hashMessage, hexConcat, hexZeroPad, parseEther, TransactionTypes } from 'ethers/lib/utils'
 import { debugTransaction } from './debugTx'
 import { BytesLike } from '@ethersproject/bytes'
 import { toChecksumAddress } from 'ethereumjs-util'
@@ -62,6 +62,7 @@ describe('EntryPoint', function () {
   let simpleAccountFactory: SimpleAccountFactory
   let aaasCreationPaymaster: AaasCreationPaymaster
   let accountOwner: Wallet
+
   const ethersSigner = ethers.provider.getSigner()
 
 
@@ -129,7 +130,8 @@ describe('EntryPoint', function () {
       let deposit = await aaasCreationPaymaster.getDeposit()
       console.log("deposit=", deposit)
       let initCode: BytesLike
-      initCode = getAccountInitCode(fidoPubKey1, simpleAccountFactory, salt)
+      const fidoPubKey1Pub =hashMessage(fidoPubKey1)
+      initCode = getAccountInitCode(fidoPubKey1Pub, simpleAccountFactory, salt)
 
       console.log("initCode:", initCode)
       let MOCK_VALID_AFTER = await ethers.provider.getBlock('latest').then(t => t.timestamp)
@@ -140,7 +142,7 @@ describe('EntryPoint', function () {
         sender: preAddr,
         initCode: initCode,
         fidoPubKey: fidoPubKey1,
-        paymasterAndData: paymasterAndData,
+        paymasterAndData: paymasterAndData
 
       }, ethersSigner, entryPoint)
       console.log("userOp:", userOp)
@@ -178,28 +180,12 @@ describe('EntryPoint', function () {
       console.log('rcpt.event=', recp2.events)
       //写入哈希值
       await txState.setL1TxState('0x1234567890', preAddr,preAddr, 1, 1)
-      
 
-     const calldata = Account.interface.encodeFunctionData('addFidoDevice', [fidoPubKey1])
-     const userOp2 = await fillAndSign({
-      sender: preAddr,
-      callData: calldata,
-      fidoPubKey: fidoPubKey1,
-      paymasterAndData: paymasterAndData,
-    }, ethersSigner, entryPoint)
-    console.log("userOp2:", userOp2)
-    const recp3 = await entryPoint.handleOps([userOp2], address1.address).then(async t => await t.wait())
 
-    
 
-    let owners =await Account.getowners()
-    console.log("owners", owners)
     }
     )
-    // {
-    //   maxFeePerGas: 1e9,
-    //   gasLimit: 1e7
-    // }
+
 
 
   })
